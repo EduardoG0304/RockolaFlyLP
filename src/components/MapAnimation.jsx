@@ -1,22 +1,26 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 
-// Configuración de iconos personalizados
-const createCustomIcon = (color) => {
-  return new L.Icon({
-    iconUrl: `data:images/logo.png,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="${color}"><path d="M16 0c-5.523 0-10 4.477-10 10 0 10 10 22 10 22s10-12 10-22c0-5.523-4.477-10-10-10zm0 16c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/></svg>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-    shadowUrl: null,
-    shadowSize: null,
-    shadowAnchor: null
-  });
-};
+// Cargar componentes de Leaflet dinámicamente sin SSR
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
 
 const locations = [
   {
@@ -64,16 +68,38 @@ const locations = [
 const MapAnimation = () => {
   const [activeLocation, setActiveLocation] = useState(null);
   const [mapReady, setMapReady] = useState(false);
+  const [CustomIcon, setCustomIcon] = useState(null);
 
   useEffect(() => {
-    // Pequeño delay para asegurar que el mapa se montó correctamente
-    const timer = setTimeout(() => setMapReady(true), 300);
-    return () => clearTimeout(timer);
+    // Solo se ejecuta en el cliente
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        const iconCreator = (color) => new L.Icon({
+          iconUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="${encodeURIComponent(color)}"><path d="M16 0c-5.523 0-10 4.477-10 10 0 10 10 22 10 22s10-12 10-22c0-5.523-4.477-10-10-10zm0 16c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/></svg>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32],
+          shadowUrl: null,
+          shadowSize: null,
+          shadowAnchor: null
+        });
+        setCustomIcon(() => iconCreator);
+        setMapReady(true);
+      });
+    }
   }, []);
 
   const handleMarkerClick = (location) => {
     setActiveLocation(location);
   };
+
+  if (!mapReady) {
+    return (
+      <div className="h-[500px] md:h-[600px] w-full bg-gray-800 rounded-xl flex items-center justify-center">
+        <p className="text-white">Cargando mapa...</p>
+      </div>
+    );
+  }
 
   return (
     <section className="py-20 bg-dark-light">
@@ -153,37 +179,35 @@ const MapAnimation = () => {
             className="lg:col-span-2 relative"
           >
             <div className="h-[500px] md:h-[600px] w-full rounded-xl overflow-hidden border-4 border-primary-DEFAULT/50 relative">
-              {mapReady && (
-                <MapContainer
-                  center={[20.6766, -103.3475]}
-                  zoom={13}
-                  style={{ height: '100%', width: '100%' }}
-                  zoomControl={false}
-                >
-                  <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  />
-                  
-                  {locations.map((location) => (
-                    <Marker
-                      key={location.id}
-                      position={location.position}
-                      icon={createCustomIcon(location.color)}
-                      eventHandlers={{
-                        click: () => handleMarkerClick(location),
-                      }}
-                    >
-                      <Popup>
-                        <div className="text-dark-DEFAULT">
-                          <h3 className="font-bold">{location.name}</h3>
-                          <p>{location.users} usuarios</p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              )}
+              <MapContainer
+                center={[20.6766, -103.3475]}
+                zoom={13}
+                style={{ height: '100%', width: '100%' }}
+                zoomControl={false}
+              >
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                
+                {locations.map((location) => (
+                  <Marker
+                    key={location.id}
+                    position={location.position}
+                    icon={CustomIcon(location.color)}
+                    eventHandlers={{
+                      click: () => handleMarkerClick(location),
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-dark-DEFAULT">
+                        <h3 className="font-bold">{location.name}</h3>
+                        <p>{location.users} usuarios</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
 
               {/* Efecto de brillo animado */}
               <motion.div

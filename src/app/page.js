@@ -13,7 +13,7 @@ export default function Home() {
       <main>
         <Hero />
         <Stats />
-        <MapAnimation/>
+        <MapAnimation />
         <Features />
        <DualForms/>
       </main>
