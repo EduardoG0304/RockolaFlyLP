@@ -41,7 +41,7 @@ export default function Footer() {
               <h3 className="text-lg font-semibold mb-4">Contacto</h3>
               <ul className="space-y-2">
                 <li className="text-gray-400">info@appname.com</li>
-                <li className="text-gray-400">+1 (555) 123-4567</li>
+                <li className="text-gray-400"></li>
               </ul>
             </div>
           </div>
