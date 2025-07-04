@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from 'next/dynamic';
 
-// Componente VortexHeader cargado dinámicamente sin SSR
 const VortexHeader = dynamic(
   () => import('./VortexHeader'),
   { 
